@@ -2,6 +2,7 @@
 import numpy as np
 import tqdm
 import pickle
+import os
 import json
 from abc import ABC,abstractmethod
 from scipy.signal import correlate2d
@@ -400,10 +401,24 @@ class Lenet5(object):
             total += 1
         return correct / max(total, 1)
 
-
-    def plot_metrics(self,losses, train_accs, test_accs):
-        # clear_output(wait=True)
+    def create_plot(self):
+        plt.ion()
         fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 7), sharex=True)
+        ax1.set_ylabel("loss")
+        ax1.legend()
+
+        ax2.set_xlabel("epoch")
+        ax2.set_ylabel("accuracy (%)")
+        ax2.legend()
+
+        fig.tight_layout()
+        plt.show()
+        return fig, ax1, ax2
+
+    def plot_metrics(self, fig, ax1, ax2, losses, train_accs, test_accs):
+        # clear_output(wait=True)
+        ax1.cla()
+        ax2.cla()
         ax1.plot(losses, label="loss")
         ax1.set_ylabel("loss")
         ax1.legend()
@@ -415,9 +430,8 @@ class Lenet5(object):
         ax2.legend()
 
         fig.tight_layout()
-        plt.show(block=False)
-        plt.pause(0.001)
-        plt.close(fig)
+        fig.canvas.draw_idle()
+        fig.canvas.flush_events()
 
     def train(self,train_params:dict):
         params = train_params or {}
@@ -428,7 +442,7 @@ class Lenet5(object):
         best_model_path = params.get("best_model_path", "./train/lenet5_best.pkl")
         current_model_path = params.get("current_model_path", "./train/lenet5_current.pkl")
         best_acc = self.best_acc
-
+        fig, ax1, ax2 = self.create_plot()
 
         for epoch in range(self.passed_epochs, epochs + 1):
             train_loss, train_acc = self.train_one_epoch( images, labels, lr=lr, max_train=max_train)
@@ -436,7 +450,7 @@ class Lenet5(object):
             self.loss_history.append(train_loss)
             self.train_acc_history.append(train_acc)
             self.test_acc_history.append(test_acc)
-            self.plot_metrics(self.loss_history, self.train_acc_history, self.test_acc_history)
+            self.plot_metrics(fig, ax1, ax2, self.loss_history, self.train_acc_history, self.test_acc_history)
             print(f"Epoch {epoch}/{epochs} | loss: {train_loss:.4f} | train acc: {train_acc:.4f} | test acc: {test_acc:.4f}")
             self.save_model(current_model_path)
             self.passed_epochs = epoch + 1
@@ -475,8 +489,17 @@ def load_train_params(path: str) -> dict:
         return json.load(f)
 # 用法示例：
 # lenet5.save_model("./lenet5_model.pkl")
-lenet5 = Lenet5.load_model("./train/lenet5_current.pkl")
-# print("Evaluating loaded model...")
-# lenet5 = Lenet5()
+train_dir = "./train"
+os.makedirs(train_dir, exist_ok=True)
+train_files = [name for name in os.listdir(train_dir) if os.path.isfile(os.path.join(train_dir, name))]
+current_model_path = os.path.join(train_dir, "lenet5_current.pkl")
+if train_files:
+    load_path = current_model_path if os.path.exists(current_model_path) else os.path.join(train_dir, train_files[0])
+    print(f"train目录已有文件，加载模型: {load_path}")
+    lenet5 = Lenet5.load_model(load_path)
+else:
+    print("train目录为空，已创建目录并新建模型")
+    lenet5 = Lenet5()
+
 train_params = load_train_params("./train_params.json")
 lenet5.train(train_params)
