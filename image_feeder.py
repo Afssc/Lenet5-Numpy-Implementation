@@ -17,7 +17,7 @@ def read_images_from_ubyte(file_path):
     return images
 
 
-def read_labels_from_ubyte(file_path):
+def read_labels_from_ubyte(file_path) -> list[int]:
     with open(file_path, 'rb') as file:
         # 读取魔数和标签数量
         magic_number, num_labels = struct.unpack('>II', file.read(8))

@@ -1,0 +1,8 @@
+{
+  "epochs": 50,
+  "lr": 0.0002,
+  "max_train": 50,
+  "max_test": 100,
+  "best_model_path": "./train/lenet5_best.pkl",
+  "current_model_path": "./train/lenet5_current.pkl"
+}
