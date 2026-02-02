@@ -5,6 +5,7 @@ build/
 dist/
 wheels/
 train/
+full_trained/
 dataset/
 .eggs/
 *.egg-info

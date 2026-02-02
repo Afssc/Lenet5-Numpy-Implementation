@@ -366,7 +366,7 @@ class Lenet5(object):
         return int(np.argmin(distances))
 
 
-    def train_one_epoch(self, images: np.ndarray, labels: np.ndarray|list[int], lr: float = 0.01, max_train: int | None = None):
+    def train_one_epoch(self, images: np.ndarray, labels: np.ndarray|list[int], lr: float = 0.01, max_train: int | None = None, ui_refresh_every: int | None = None):
         correct = 0
         total = 0
         epoch_loss = 0.0
@@ -386,6 +386,8 @@ class Lenet5(object):
             grad = np.array([label]).reshape((1, 1, 1))
             for layer in reversed(self.model):
                 grad = layer.backward(grad, learning_rate=lr)
+            if ui_refresh_every is not None and ui_refresh_every > 0 and (idx + 1) % ui_refresh_every == 0:
+                plt.pause(0.001)
         return epoch_loss / max(total, 1), correct / max(total, 1)
 
 
@@ -405,11 +407,9 @@ class Lenet5(object):
         plt.ion()
         fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 7), sharex=True)
         ax1.set_ylabel("loss")
-        ax1.legend()
 
         ax2.set_xlabel("epoch")
         ax2.set_ylabel("accuracy (%)")
-        ax2.legend()
 
         fig.tight_layout()
         plt.show()
@@ -432,21 +432,30 @@ class Lenet5(object):
         fig.tight_layout()
         fig.canvas.draw_idle()
         fig.canvas.flush_events()
+        plt.pause(0.01)
 
-    def train(self,train_params:dict):
+    def train(self,train_params:dict,train_images:np.ndarray,label_list:list[int],
+              test_images:np.ndarray,test_label_list:list[int]):
         params = train_params or {}
         epochs = params.get("epochs", 50)
         lr = params.get("lr", 0.0002)
         max_train = params.get("max_train", 50)  # 先小规模跑通，改成None可全量训练
         max_test = params.get("max_test", 100)
+        ui_refresh_every = params.get("ui_refresh_every", 50)
         best_model_path = params.get("best_model_path", "./train/lenet5_best.pkl")
         current_model_path = params.get("current_model_path", "./train/lenet5_current.pkl")
         best_acc = self.best_acc
         fig, ax1, ax2 = self.create_plot()
 
         for epoch in range(self.passed_epochs, epochs + 1):
-            train_loss, train_acc = self.train_one_epoch( images, labels, lr=lr, max_train=max_train)
-            test_acc = self.evaluate( test_images, test_labels, max_test=max_test)
+            train_loss, train_acc = self.train_one_epoch(
+                train_images,
+                label_list,
+                lr=lr,
+                max_train=max_train,
+                ui_refresh_every=ui_refresh_every,
+            )
+            test_acc = self.evaluate( test_images, test_label_list, max_test=max_test)
             self.loss_history.append(train_loss)
             self.train_acc_history.append(train_acc)
             self.test_acc_history.append(test_acc)
@@ -469,37 +478,39 @@ class Lenet5(object):
             model = pickle.load(f)
         return model
 
-# 训练集
-labels = read_labels_from_ubyte('./dataset/train-labels-idx1-ubyte')
-images = read_images_from_ubyte('./dataset/train-images-idx3-ubyte')
-# 这些图都是28x28的，padding到32x32
-images = np.pad(images, ((0, 0), (2, 2), (2, 2)), 'constant', constant_values=0)
-images = images.astype("float32")/127.5 - 1.0
-# 测试集
-test_labels = read_labels_from_ubyte('./dataset/t10k-labels-idx1-ubyte')
-test_images = read_images_from_ubyte('./dataset/t10k-images-idx3-ubyte')
-# 这些图也是28x28的，padding到32x32
-test_images = np.pad(test_images, ((0, 0), (2, 2), (2, 2)), 'constant', constant_values=0)
-test_images = test_images.astype("float32")/127.5 - 1.0
 
 
 # 训练参数加载
 def load_train_params(path: str) -> dict:
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
-# 用法示例：
-# lenet5.save_model("./lenet5_model.pkl")
-train_dir = "./train"
-os.makedirs(train_dir, exist_ok=True)
-train_files = [name for name in os.listdir(train_dir) if os.path.isfile(os.path.join(train_dir, name))]
-current_model_path = os.path.join(train_dir, "lenet5_current.pkl")
-if train_files:
-    load_path = current_model_path if os.path.exists(current_model_path) else os.path.join(train_dir, train_files[0])
-    print(f"train目录已有文件，加载模型: {load_path}")
-    lenet5 = Lenet5.load_model(load_path)
-else:
-    print("train目录为空，已创建目录并新建模型")
-    lenet5 = Lenet5()
 
-train_params = load_train_params("./train_params.json")
-lenet5.train(train_params)
+if __name__ == "__main__":
+# 训练集
+    labels = read_labels_from_ubyte('./dataset/train-labels-idx1-ubyte')
+    images = read_images_from_ubyte('./dataset/train-images-idx3-ubyte')
+# 这些图都是28x28的，padding到32x32
+    images = np.pad(images, ((0, 0), (2, 2), (2, 2)), 'constant', constant_values=0)
+    images = images.astype("float32")/127.5 - 1.0
+# 测试集
+    test_labels = read_labels_from_ubyte('./dataset/t10k-labels-idx1-ubyte')
+    test_images = read_images_from_ubyte('./dataset/t10k-images-idx3-ubyte')
+# 这些图也是28x28的，padding到32x32
+    test_images = np.pad(test_images, ((0, 0), (2, 2), (2, 2)), 'constant', constant_values=0)
+    test_images = test_images.astype("float32")/127.5 - 1.0
+     
+    train_dir = "./train"
+    os.makedirs(train_dir, exist_ok=True)
+    train_files = [name for name in os.listdir(train_dir) if os.path.isfile(os.path.join(train_dir, name))]
+    current_model_path = os.path.join(train_dir, "lenet5_current.pkl")
+
+    if train_files:
+        load_path = current_model_path if os.path.exists(current_model_path) else os.path.join(train_dir, train_files[0])
+        print(f"train目录已有文件，加载模型: {load_path}")
+        lenet5 = Lenet5.load_model(load_path)
+    else:
+        print("train目录为空，已创建目录并新建模型")
+        lenet5 = Lenet5()
+
+    train_params = load_train_params("./train_params.json")
+    lenet5.train(train_params, images, labels, test_images, test_labels)
