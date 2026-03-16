@@ -1,4 +1,5 @@
 # LeNet5 Numpy Implementation
+纯Numpy实现LeNet5  
 
 ![Lenet5 Demo](images/Figure_2.png)
 
