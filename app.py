@@ -212,4 +212,4 @@ class DigitDrawUI:
             self.draw_at(event.xdata, event.ydata)
 
 # 启动演示窗口
-ui = DigitDrawUI(canvas_size=28, brush=1,model_path ="./full_trained/lenet5_full_acc94.pkl")
+ui = DigitDrawUI(canvas_size=28, brush=1,model_path ="./full_trained/lenet5_best_epoch37_acc9500.pkl")
