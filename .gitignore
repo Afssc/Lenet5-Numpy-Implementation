@@ -8,6 +8,8 @@ train/
 dataset/
 .eggs/
 *.egg-info
+dataset/
+train/
 
 # Virtual environments
 .venv

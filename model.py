@@ -214,7 +214,6 @@ class Conv_layer(layer):
         # grad_out = pad(dY) 互相关 翻转后的K  
         # dK = X 互相关 dY  
         # db = sum(grad_map_in)
-        # 吐了，先让ai写吧
         assert grad_input.shape == self.m_out_shape
         dY = grad_input * self.m_activation_func.gradient(self._forward_Z)
         dB = np.sum(dY, axis=(1,2)) / 1  # 假设batch size=1
@@ -242,7 +241,6 @@ class Conv_layer(layer):
         return grad_out_maps
 
 # %%
-# 大脑已经死机了，池化层交给ai写吧
 class Pooling_layer(layer):
     m_pool_size:int
     m_stride:int
